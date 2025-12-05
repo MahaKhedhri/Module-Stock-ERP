@@ -1,0 +1,136 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* ERP Professional Color System */
+    --background: 220 17% 97%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Primary: Professional Blue Slate */
+    --primary: 222 57% 38%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 222 57% 32%;
+
+    /* Secondary: Neutral Gray */
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    /* Muted: Subtle Backgrounds */
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+
+    /* Accent: Soft Blue */
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Success: Emerald Green */
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+
+    /* Warning: Amber Orange */
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    /* Destructive: Alert Red */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Borders & Inputs */
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 222 57% 38%;
+
+    --radius: 0.5rem;
+
+    /* Sidebar ERP Styling */
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 220 14% 96%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 47% 18%;
+    --sidebar-accent-foreground: 220 14% 96%;
+    --sidebar-border: 222 47% 15%;
+    --sidebar-ring: 217 91% 60%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(222 57% 38%) 0%, hsl(217 91% 60%) 100%);
+    --gradient-success: linear-gradient(135deg, hsl(142 71% 45%) 0%, hsl(142 71% 55%) 100%);
+    --gradient-warning: linear-gradient(135deg, hsl(38 92% 50%) 0%, hsl(38 92% 60%) 100%);
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 hsl(222 47% 11% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(222 47% 11% / 0.1);
+    --shadow-lg: 0 10px 15px -3px hsl(222 47% 11% / 0.1);
+
+    /* Transitions */
+    --transition-base: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .dark {
+    --background: 222 47% 11%;
+    --foreground: 220 14% 96%;
+
+    --card: 222 47% 14%;
+    --card-foreground: 220 14% 96%;
+
+    --popover: 222 47% 14%;
+    --popover-foreground: 220 14% 96%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 11%;
+    --primary-hover: 217 91% 65%;
+
+    --secondary: 222 47% 18%;
+    --secondary-foreground: 220 14% 96%;
+
+    --muted: 222 47% 18%;
+    --muted-foreground: 220 9% 65%;
+
+    --accent: 222 57% 38%;
+    --accent-foreground: 220 14% 96%;
+
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 222 47% 18%;
+    --input: 222 47% 18%;
+    --ring: 217 91% 60%;
+
+    --sidebar-background: 222 47% 8%;
+    --sidebar-foreground: 220 14% 96%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 47% 15%;
+    --sidebar-accent-foreground: 220 14% 96%;
+    --sidebar-border: 222 47% 12%;
+    --sidebar-ring: 217 91% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
