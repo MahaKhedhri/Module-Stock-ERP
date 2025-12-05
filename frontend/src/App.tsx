@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { StockProvider } from "./contexts/StockContext";
 import { AppLayout } from "./components/layout/AppLayout";
 import Dashboard from "./pages/Dashboard";
+import Products from "./pages/Products";
 
 const queryClient = new QueryClient();
 
@@ -19,7 +20,7 @@ const App = () => (
           <AppLayout>
             <Routes>
               <Route path="/" element={<Dashboard />} />
-             
+              <Route path="/products" element={<Products />} />
             </Routes>
           </AppLayout>
         </BrowserRouter>
