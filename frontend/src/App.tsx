@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { StockProvider } from "./contexts/StockContext";
 import { AppLayout } from "./components/layout/AppLayout";
+import Dashboard from "./pages/Dashboard";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -14,6 +16,12 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <AppLayout>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+             
+            </Routes>
+          </AppLayout>
         </BrowserRouter>
       </TooltipProvider>
     </StockProvider>
