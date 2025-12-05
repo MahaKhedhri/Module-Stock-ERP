@@ -7,7 +7,6 @@ import { StockProvider } from "./contexts/StockContext";
 import { AppLayout } from "./components/layout/AppLayout";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
-import Categories from "./pages/Categories";
 
 const queryClient = new QueryClient();
 

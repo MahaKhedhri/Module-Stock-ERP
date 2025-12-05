@@ -6,8 +6,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { StockProvider } from "./contexts/StockContext";
 import { AppLayout } from "./components/layout/AppLayout";
 import Dashboard from "./pages/Dashboard";
-import Products from "./pages/Products";
-import Categories from "./pages/Categories";
 
 const queryClient = new QueryClient();
 
@@ -21,8 +19,7 @@ const App = () => (
           <AppLayout>
             <Routes>
               <Route path="/" element={<Dashboard />} />
-              <Route path="/products" element={<Products />} />
-              <Route path="/categories" element={<Categories />} />
+             
             </Routes>
           </AppLayout>
         </BrowserRouter>
