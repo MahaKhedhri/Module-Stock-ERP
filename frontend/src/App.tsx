@@ -7,7 +7,9 @@ import { StockProvider } from "./contexts/StockContext";
 import { AppLayout } from "./components/layout/AppLayout";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
-import Categories from "./pages/Categories";
+import Categories from "./pages/categories";
+import Suppliers from "./pages/Suppliers";
+import PurchaseOrders from "./pages/PurchaseOrders";
 
 const queryClient = new QueryClient();
 
@@ -23,10 +25,8 @@ const App = () => (
               <Route path="/" element={<Dashboard />} />
               <Route path="/products" element={<Products />} />
               <Route path="/categories" element={<Categories />} />
-<<<<<<< HEAD
               <Route path="/suppliers" element={<Suppliers />} />
-=======
->>>>>>> f39d7b79700f575ba1f6d74161b2bbedabd56377
+              <Route path="/purchase-orders" element={<PurchaseOrders />} />
             </Routes>
           </AppLayout>
         </BrowserRouter>
