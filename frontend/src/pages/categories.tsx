@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { CategoryModal } from '@/components/modals/CategoryModal';
 
 export default function Categories() {
-  const { categories, products, deleteCategory } = useStock();
+  const { categories, products, deleteCategory, loading, error } = useStock();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
 
@@ -16,14 +16,18 @@ export default function Categories() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (categoryId: string) => {
+  const handleDelete = async (categoryId: string) => {
     const productsInCategory = products.filter(p => p.categoryId === categoryId).length;
     if (productsInCategory > 0) {
       alert(`Impossible de supprimer cette catégorie car ${productsInCategory} produit(s) y sont associés.`);
       return;
     }
     if (confirm('Êtes-vous sûr de vouloir supprimer cette catégorie ?')) {
-      deleteCategory(categoryId);
+      try {
+        await deleteCategory(categoryId);
+      } catch (error: any) {
+        alert(error.message || 'Erreur lors de la suppression');
+      }
     }
   };
 
@@ -31,6 +35,34 @@ export default function Categories() {
     setIsModalOpen(false);
     setEditingCategory(null);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading categories...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">Catégories</h2>
+            <p className="text-muted-foreground">Organisez vos produits par catégorie</p>
+          </div>
+        </div>
+        <div className="bg-destructive/10 text-destructive p-4 rounded-lg">
+          <p className="font-semibold">Error loading categories</p>
+          <p className="text-sm">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

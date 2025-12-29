@@ -34,18 +34,25 @@ export function CategoryModal({ open, onClose, categoryId }: CategoryModalProps)
     }
   }, [categoryId, categories, open]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (categoryId) {
-      updateCategory(categoryId, formData);
-      toast.success('Catégorie modifiée avec succès');
-    } else {
-      addCategory(formData);
-      toast.success('Catégorie ajoutée avec succès');
+    try {
+      if (categoryId) {
+        await updateCategory(categoryId, formData);
+        toast.success('Catégorie modifiée avec succès');
+        onClose();
+      } else {
+        await addCategory(formData);
+        toast.success('Catégorie ajoutée avec succès');
+        onClose();
+      }
+    } catch (error: any) {
+      console.error('Error saving category:', error);
+      const errorMessage = error.message || 'Une erreur est survenue lors de l\'enregistrement';
+      toast.error(errorMessage);
+      // Don't close modal on error so user can retry
     }
-
-    onClose();
   };
 
   return (

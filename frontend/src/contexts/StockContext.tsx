@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { categoriesApi, suppliersApi, productsApi, purchaseOrdersApi, stockMovementsApi } from '@/lib/api';
 
 export interface Product {
   id: string;
@@ -59,174 +60,221 @@ interface StockContextType {
   suppliers: Supplier[];
   purchaseOrders: PurchaseOrder[];
   stockMovements: StockMovement[];
-  addProduct: (product: Omit<Product, 'id'>) => void;
-  updateProduct: (id: string, product: Partial<Product>) => void;
-  deleteProduct: (id: string) => void;
-  addCategory: (category: Omit<Category, 'id'>) => void;
-  updateCategory: (id: string, category: Partial<Category>) => void;
-  deleteCategory: (id: string) => void;
-  addSupplier: (supplier: Omit<Supplier, 'id'>) => void;
-  updateSupplier: (id: string, supplier: Partial<Supplier>) => void;
-  deleteSupplier: (id: string) => void;
-  addPurchaseOrder: (order: Omit<PurchaseOrder, 'id'>) => void;
-  updatePurchaseOrder: (id: string, order: Partial<PurchaseOrder>) => void;
-  receivePurchaseOrder: (id: string) => void;
-  addStockMovement: (movement: Omit<StockMovement, 'id'>) => void;
-  adjustStock: (productId: string, quantity: number, note?: string) => void;
+  loading: boolean;
+  error: string | null;
+  addProduct: (product: Omit<Product, 'id'>) => Promise<void>;
+  updateProduct: (id: string, product: Partial<Product>) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
+  addCategory: (category: Omit<Category, 'id'>) => Promise<void>;
+  updateCategory: (id: string, category: Partial<Category>) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
+  addSupplier: (supplier: Omit<Supplier, 'id'>) => Promise<void>;
+  updateSupplier: (id: string, supplier: Partial<Supplier>) => Promise<void>;
+  deleteSupplier: (id: string) => Promise<void>;
+  addPurchaseOrder: (order: Omit<PurchaseOrder, 'id'>) => Promise<void>;
+  updatePurchaseOrder: (id: string, order: Partial<PurchaseOrder>) => Promise<void>;
+  receivePurchaseOrder: (id: string) => Promise<void>;
+  addStockMovement: (movement: Omit<StockMovement, 'id'>) => Promise<void>;
+  adjustStock: (productId: string, quantity: number, note?: string) => Promise<void>;
+  refresh: () => Promise<void>;
 }
 
 const StockContext = createContext<StockContextType | undefined>(undefined);
 
-// Mock data initial
-const initialCategories: Category[] = [
-  { id: '1', name: 'Électronique', description: 'Appareils électroniques' },
-  { id: '2', name: 'Mobilier', description: 'Meubles de bureau' },
-  { id: '3', name: 'Fournitures', description: 'Fournitures de bureau' },
-];
-
-const initialSuppliers: Supplier[] = [
-  { id: '1', name: 'TechSupply Co.', email: 'contact@techsupply.com', phone: '01 23 45 67 89', address: '123 Avenue de la Tech, 75001 Paris' },
-  { id: '2', name: 'FurniPro', email: 'sales@furnipro.com', phone: '01 98 76 54 32', address: '45 Rue du Mobilier, 69001 Lyon' },
-  { id: '3', name: 'Office Plus', email: 'info@officeplus.com', phone: '01 11 22 33 44', address: '78 Boulevard des Fournitures, 13001 Marseille' },
-];
-
-const initialProducts: Product[] = [
-  { id: '1', name: 'Ordinateur Portable HP', sku: 'HP-LAP-001', categoryId: '1', purchasePrice: 650, salePrice: 899, quantity: 15, unit: 'unité', supplierId: '1', minStock: 5 },
-  { id: '2', name: 'Clavier Mécanique', sku: 'KEY-MEC-002', categoryId: '1', purchasePrice: 45, salePrice: 79, quantity: 32, unit: 'unité', supplierId: '1', minStock: 10 },
-  { id: '3', name: 'Bureau Réglable', sku: 'DESK-ADJ-003', categoryId: '2', purchasePrice: 280, salePrice: 450, quantity: 8, unit: 'unité', supplierId: '2', minStock: 3 },
-  { id: '4', name: 'Chaise Ergonomique', sku: 'CHAIR-ERG-004', categoryId: '2', purchasePrice: 150, salePrice: 249, quantity: 12, unit: 'unité', supplierId: '2', minStock: 5 },
-  { id: '5', name: 'Ramette Papier A4', sku: 'PAP-A4-005', categoryId: '3', purchasePrice: 3.5, salePrice: 6.99, quantity: 120, unit: 'ramette', supplierId: '3', minStock: 50 },
-  { id: '6', name: 'Stylos Bille (Boîte)', sku: 'PEN-BOX-006', categoryId: '3', purchasePrice: 8, salePrice: 14.99, quantity: 45, unit: 'boîte', supplierId: '3', minStock: 20 },
-  { id: '7', name: 'Écran 24 pouces', sku: 'MON-24-007', categoryId: '1', purchasePrice: 120, salePrice: 199, quantity: 3, unit: 'unité', supplierId: '1', minStock: 5 },
-];
-
-const initialPurchaseOrders: PurchaseOrder[] = [
-  {
-    id: '1',
-    supplierId: '1',
-    date: '2025-01-15',
-    status: 'received',
-    lines: [
-      { productId: '1', quantity: 10, unitPrice: 650 },
-      { productId: '2', quantity: 20, unitPrice: 45 },
-    ],
-    total: 7400,
-  },
-  {
-    id: '2',
-    supplierId: '2',
-    date: '2025-01-18',
-    status: 'sent',
-    lines: [
-      { productId: '3', quantity: 5, unitPrice: 280 },
-    ],
-    total: 1400,
-  },
-];
-
-const initialStockMovements: StockMovement[] = [
-  { id: '1', productId: '1', type: 'in', quantity: 10, date: '2025-01-15', reference: 'PO-1', note: 'Réception commande' },
-  { id: '2', productId: '2', type: 'in', quantity: 20, date: '2025-01-15', reference: 'PO-1', note: 'Réception commande' },
-  { id: '3', productId: '5', type: 'out', quantity: 30, date: '2025-01-16', note: 'Vente client XYZ' },
-  { id: '4', productId: '7', type: 'adjustment', quantity: -2, date: '2025-01-17', note: 'Correction inventaire' },
-];
-
 export const StockProvider = ({ children }: { children: ReactNode }) => {
-  const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [categories, setCategories] = useState<Category[]>(initialCategories);
-  const [suppliers, setSuppliers] = useState<Supplier[]>(initialSuppliers);
-  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>(initialPurchaseOrders);
-  const [stockMovements, setStockMovements] = useState<StockMovement[]>(initialStockMovements);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
+  const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const addProduct = (product: Omit<Product, 'id'>) => {
-    const newProduct = { ...product, id: Date.now().toString() };
-    setProducts([...products, newProduct]);
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const [categoriesData, suppliersData, productsData, ordersData, movementsData] = await Promise.all([
+        categoriesApi.getAll(),
+        suppliersApi.getAll(),
+        productsApi.getAll(),
+        purchaseOrdersApi.getAll(),
+        stockMovementsApi.getAll(),
+      ]);
+
+      setCategories(categoriesData);
+      setSuppliers(suppliersData);
+      setProducts(productsData);
+      setPurchaseOrders(ordersData);
+      setStockMovements(movementsData);
+    } catch (err: any) {
+      console.error('Error loading data:', err);
+      setError(err.message || 'Failed to load data');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const updateProduct = (id: string, product: Partial<Product>) => {
-    setProducts(products.map(p => p.id === id ? { ...p, ...product } : p));
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const addProduct = async (product: Omit<Product, 'id'>) => {
+    try {
+      const newProduct = await productsApi.create(product);
+      // Only update state if API call succeeds
+      setProducts([...products, newProduct]);
+      return newProduct;
+    } catch (err: any) {
+      console.error('Error adding product:', err);
+      // Re-throw error so calling code can handle it
+      throw err;
+    }
   };
 
-  const deleteProduct = (id: string) => {
-    setProducts(products.filter(p => p.id !== id));
+  const updateProduct = async (id: string, product: Partial<Product>) => {
+    try {
+      const updatedProduct = await productsApi.update(id, product);
+      setProducts(products.map(p => p.id === id ? updatedProduct : p));
+    } catch (err: any) {
+      console.error('Error updating product:', err);
+      throw err;
+    }
   };
 
-  const addCategory = (category: Omit<Category, 'id'>) => {
-    const newCategory = { ...category, id: Date.now().toString() };
-    setCategories([...categories, newCategory]);
+  const deleteProduct = async (id: string) => {
+    try {
+      await productsApi.delete(id);
+      setProducts(products.filter(p => p.id !== id));
+    } catch (err: any) {
+      console.error('Error deleting product:', err);
+      throw err;
+    }
   };
 
-  const updateCategory = (id: string, category: Partial<Category>) => {
-    setCategories(categories.map(c => c.id === id ? { ...c, ...category } : c));
+  const addCategory = async (category: Omit<Category, 'id'>) => {
+    try {
+      const newCategory = await categoriesApi.create(category);
+      // Only update state if API call succeeds
+      setCategories([...categories, newCategory]);
+      return newCategory;
+    } catch (err: any) {
+      console.error('Error adding category:', err);
+      // Re-throw error so calling code can handle it
+      throw err;
+    }
   };
 
-  const deleteCategory = (id: string) => {
-    setCategories(categories.filter(c => c.id !== id));
+  const updateCategory = async (id: string, category: Partial<Category>) => {
+    try {
+      const updatedCategory = await categoriesApi.update(id, category);
+      setCategories(categories.map(c => c.id === id ? updatedCategory : c));
+    } catch (err: any) {
+      console.error('Error updating category:', err);
+      throw err;
+    }
   };
 
-  const addSupplier = (supplier: Omit<Supplier, 'id'>) => {
-    const newSupplier = { ...supplier, id: Date.now().toString() };
-    setSuppliers([...suppliers, newSupplier]);
+  const deleteCategory = async (id: string) => {
+    try {
+      await categoriesApi.delete(id);
+      setCategories(categories.filter(c => c.id !== id));
+    } catch (err: any) {
+      console.error('Error deleting category:', err);
+      throw err;
+    }
   };
 
-  const updateSupplier = (id: string, supplier: Partial<Supplier>) => {
-    setSuppliers(suppliers.map(s => s.id === id ? { ...s, ...supplier } : s));
+  const addSupplier = async (supplier: Omit<Supplier, 'id'>) => {
+    try {
+      const newSupplier = await suppliersApi.create(supplier);
+      // Only update state if API call succeeds
+      setSuppliers([...suppliers, newSupplier]);
+      return newSupplier;
+    } catch (err: any) {
+      console.error('Error adding supplier:', err);
+      // Re-throw error so calling code can handle it
+      throw err;
+    }
   };
 
-  const deleteSupplier = (id: string) => {
-    setSuppliers(suppliers.filter(s => s.id !== id));
+  const updateSupplier = async (id: string, supplier: Partial<Supplier>) => {
+    try {
+      const updatedSupplier = await suppliersApi.update(id, supplier);
+      setSuppliers(suppliers.map(s => s.id === id ? updatedSupplier : s));
+    } catch (err: any) {
+      console.error('Error updating supplier:', err);
+      throw err;
+    }
   };
 
-  const addPurchaseOrder = (order: Omit<PurchaseOrder, 'id'>) => {
-    const newOrder = { ...order, id: Date.now().toString() };
-    setPurchaseOrders([...purchaseOrders, newOrder]);
+  const deleteSupplier = async (id: string) => {
+    try {
+      await suppliersApi.delete(id);
+      setSuppliers(suppliers.filter(s => s.id !== id));
+    } catch (err: any) {
+      console.error('Error deleting supplier:', err);
+      throw err;
+    }
   };
 
-  const updatePurchaseOrder = (id: string, order: Partial<PurchaseOrder>) => {
-    setPurchaseOrders(purchaseOrders.map(po => po.id === id ? { ...po, ...order } : po));
+  const addPurchaseOrder = async (order: Omit<PurchaseOrder, 'id'>) => {
+    try {
+      const newOrder = await purchaseOrdersApi.create(order);
+      setPurchaseOrders([...purchaseOrders, newOrder]);
+    } catch (err: any) {
+      console.error('Error adding purchase order:', err);
+      throw err;
+    }
   };
 
-  const receivePurchaseOrder = (id: string) => {
-    const order = purchaseOrders.find(po => po.id === id);
-    if (!order) return;
-
-    // Mise à jour du stock
-    order.lines.forEach(line => {
-      const product = products.find(p => p.id === line.productId);
-      if (product) {
-        updateProduct(product.id, { quantity: product.quantity + line.quantity });
-        addStockMovement({
-          productId: line.productId,
-          type: 'in',
-          quantity: line.quantity,
-          date: new Date().toISOString().split('T')[0],
-          reference: `PO-${id}`,
-          note: 'Réception commande d\'achat',
-        });
-      }
-    });
-
-    updatePurchaseOrder(id, { status: 'received' });
+  const updatePurchaseOrder = async (id: string, order: Partial<PurchaseOrder>) => {
+    try {
+      const updatedOrder = await purchaseOrdersApi.update(id, order);
+      setPurchaseOrders(purchaseOrders.map(po => po.id === id ? updatedOrder : po));
+    } catch (err: any) {
+      console.error('Error updating purchase order:', err);
+      throw err;
+    }
   };
 
-  const addStockMovement = (movement: Omit<StockMovement, 'id'>) => {
-    const newMovement = { ...movement, id: Date.now().toString() };
-    setStockMovements([...stockMovements, newMovement]);
+  const receivePurchaseOrder = async (id: string) => {
+    try {
+      const updatedOrder = await purchaseOrdersApi.receive(id);
+      setPurchaseOrders(purchaseOrders.map(po => po.id === id ? updatedOrder : po));
+      // Reload products to get updated quantities
+      const productsData = await productsApi.getAll();
+      setProducts(productsData);
+    } catch (err: any) {
+      console.error('Error receiving purchase order:', err);
+      throw err;
+    }
   };
 
-  const adjustStock = (productId: string, quantity: number, note?: string) => {
-    const product = products.find(p => p.id === productId);
-    if (!product) return;
+  const addStockMovement = async (movement: Omit<StockMovement, 'id'>) => {
+    try {
+      const newMovement = await stockMovementsApi.create(movement);
+      setStockMovements([...stockMovements, newMovement]);
+      // Reload products to get updated quantities
+      const productsData = await productsApi.getAll();
+      setProducts(productsData);
+    } catch (err: any) {
+      console.error('Error adding stock movement:', err);
+      throw err;
+    }
+  };
 
-    const adjustment = quantity - product.quantity;
-    updateProduct(productId, { quantity });
-    addStockMovement({
-      productId,
-      type: 'adjustment',
-      quantity: adjustment,
-      date: new Date().toISOString().split('T')[0],
-      note: note || 'Ajustement manuel',
-    });
+  const adjustStock = async (productId: string, quantity: number, note?: string) => {
+    try {
+      await productsApi.adjustStock(productId, quantity, note);
+      // Reload products to get updated quantity
+      const productsData = await productsApi.getAll();
+      setProducts(productsData);
+    } catch (err: any) {
+      console.error('Error adjusting stock:', err);
+      throw err;
+    }
   };
 
   return (
@@ -237,6 +285,8 @@ export const StockProvider = ({ children }: { children: ReactNode }) => {
         suppliers,
         purchaseOrders,
         stockMovements,
+        loading,
+        error,
         addProduct,
         updateProduct,
         deleteProduct,
@@ -251,6 +301,7 @@ export const StockProvider = ({ children }: { children: ReactNode }) => {
         receivePurchaseOrder,
         addStockMovement,
         adjustStock,
+        refresh: loadData,
       }}
     >
       {children}

@@ -16,7 +16,7 @@ import { PurchaseOrderModal } from '@/components/modals/PurchaseOrderModal';
 import { toast } from 'sonner';
 
 export default function PurchaseOrders() {
-  const { purchaseOrders, suppliers, products, updatePurchaseOrder, receivePurchaseOrder } = useStock();
+  const { purchaseOrders, suppliers, products, updatePurchaseOrder, receivePurchaseOrder, loading, error } = useStock();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const getStatusBadge = (status: string) => {
@@ -34,17 +34,53 @@ export default function PurchaseOrders() {
     }
   };
 
-  const handleReceive = (orderId: string) => {
+  const handleReceive = async (orderId: string) => {
     if (confirm('Confirmer la réception de cette commande ? Le stock sera mis à jour automatiquement.')) {
-      receivePurchaseOrder(orderId);
-      toast.success('Commande réceptionnée et stock mis à jour');
+      try {
+        await receivePurchaseOrder(orderId);
+        toast.success('Commande réceptionnée et stock mis à jour');
+      } catch (error: any) {
+        toast.error(error.message || 'Erreur lors de la réception');
+      }
     }
   };
 
-  const handleChangeStatus = (orderId: string, newStatus: 'draft' | 'sent' | 'received' | 'closed') => {
-    updatePurchaseOrder(orderId, { status: newStatus });
-    toast.success('Statut mis à jour');
+  const handleChangeStatus = async (orderId: string, newStatus: 'draft' | 'sent' | 'received' | 'closed') => {
+    try {
+      await updatePurchaseOrder(orderId, { status: newStatus });
+      toast.success('Statut mis à jour');
+    } catch (error: any) {
+      toast.error(error.message || 'Erreur lors de la mise à jour');
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading purchase orders...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">Commandes d'Achat</h2>
+            <p className="text-muted-foreground">Suivez vos commandes fournisseurs</p>
+          </div>
+        </div>
+        <div className="bg-destructive/10 text-destructive p-4 rounded-lg">
+          <p className="font-semibold">Error loading purchase orders</p>
+          <p className="text-sm">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

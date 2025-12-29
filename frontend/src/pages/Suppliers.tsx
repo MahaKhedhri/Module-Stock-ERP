@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { SupplierModal } from '@/components/modals/SupplierModal';
 
 export default function Suppliers() {
-  const { suppliers, products, deleteSupplier } = useStock();
+  const { suppliers, products, deleteSupplier, loading, error } = useStock();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<string | null>(null);
 
@@ -15,14 +15,18 @@ export default function Suppliers() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (supplierId: string) => {
+  const handleDelete = async (supplierId: string) => {
     const productsFromSupplier = products.filter(p => p.supplierId === supplierId).length;
     if (productsFromSupplier > 0) {
       alert(`Impossible de supprimer ce fournisseur car ${productsFromSupplier} produit(s) y sont associés.`);
       return;
     }
     if (confirm('Êtes-vous sûr de vouloir supprimer ce fournisseur ?')) {
-      deleteSupplier(supplierId);
+      try {
+        await deleteSupplier(supplierId);
+      } catch (error: any) {
+        alert(error.message || 'Erreur lors de la suppression');
+      }
     }
   };
 
@@ -30,6 +34,34 @@ export default function Suppliers() {
     setIsModalOpen(false);
     setEditingSupplier(null);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading suppliers...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">Fournisseurs</h2>
+            <p className="text-muted-foreground">Gérez vos partenaires fournisseurs</p>
+          </div>
+        </div>
+        <div className="bg-destructive/10 text-destructive p-4 rounded-lg">
+          <p className="font-semibold">Error loading suppliers</p>
+          <p className="text-sm">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

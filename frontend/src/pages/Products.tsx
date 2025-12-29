@@ -14,9 +14,10 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ProductModal } from '@/components/modals/ProductModal';
+import { toast } from 'sonner';
 
 export default function Products() {
-  const { products, categories, suppliers, deleteProduct } = useStock();
+  const { products, categories, suppliers, deleteProduct, loading, error } = useStock();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<string | null>(null);
@@ -31,9 +32,14 @@ export default function Products() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (productId: string) => {
+  const handleDelete = async (productId: string) => {
     if (confirm('Êtes-vous sûr de vouloir supprimer ce produit ?')) {
-      deleteProduct(productId);
+      try {
+        await deleteProduct(productId);
+        toast.success('Produit supprimé avec succès');
+      } catch (error: any) {
+        toast.error(error.message || 'Erreur lors de la suppression');
+      }
     }
   };
 
@@ -41,6 +47,34 @@ export default function Products() {
     setIsModalOpen(false);
     setEditingProduct(null);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading products...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">Produits</h2>
+            <p className="text-muted-foreground">Gérez votre catalogue de produits</p>
+          </div>
+        </div>
+        <div className="bg-destructive/10 text-destructive p-4 rounded-lg">
+          <p className="font-semibold">Error loading products</p>
+          <p className="text-sm">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

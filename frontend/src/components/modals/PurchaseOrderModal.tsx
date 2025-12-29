@@ -51,7 +51,7 @@ export function PurchaseOrderModal({ open, onClose }: PurchaseOrderModalProps) {
     return lines.reduce((sum, line) => sum + (line.quantity * line.unitPrice), 0);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!supplierId) {
@@ -64,18 +64,22 @@ export function PurchaseOrderModal({ open, onClose }: PurchaseOrderModalProps) {
       return;
     }
 
-    addPurchaseOrder({
-      supplierId,
-      date: new Date().toISOString().split('T')[0],
-      status: 'draft',
-      lines,
-      total: calculateTotal(),
-    });
+    try {
+      await addPurchaseOrder({
+        supplierId,
+        date: new Date().toISOString().split('T')[0],
+        status: 'draft',
+        lines,
+        total: calculateTotal(),
+      });
 
-    toast.success('Commande créée avec succès');
-    setSupplierId('');
-    setLines([{ productId: '', quantity: 1, unitPrice: 0 }]);
-    onClose();
+      toast.success('Commande créée avec succès');
+      setSupplierId('');
+      setLines([{ productId: '', quantity: 1, unitPrice: 0 }]);
+      onClose();
+    } catch (error: any) {
+      toast.error(error.message || 'Une erreur est survenue');
+    }
   };
 
   return (

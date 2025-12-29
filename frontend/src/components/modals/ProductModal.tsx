@@ -61,7 +61,7 @@ export function ProductModal({ open, onClose, productId }: ProductModalProps) {
     }
   }, [productId, products, open]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const productData = {
@@ -71,21 +71,28 @@ export function ProductModal({ open, onClose, productId }: ProductModalProps) {
       supplierId: formData.supplierId,
       purchasePrice: parseFloat(formData.purchasePrice),
       salePrice: parseFloat(formData.salePrice),
-      quantity: parseInt(formData.quantity),
+      quantity: parseInt(formData.quantity) || 0,
       unit: formData.unit,
-      minStock: parseInt(formData.minStock),
-      image: formData.image,
+      minStock: parseInt(formData.minStock) || 0,
+      image: formData.image || undefined,
     };
 
-    if (productId) {
-      updateProduct(productId, productData);
-      toast.success('Produit modifié avec succès');
-    } else {
-      addProduct(productData);
-      toast.success('Produit ajouté avec succès');
+    try {
+      if (productId) {
+        await updateProduct(productId, productData);
+        toast.success('Produit modifié avec succès');
+        onClose();
+      } else {
+        await addProduct(productData);
+        toast.success('Produit ajouté avec succès');
+        onClose();
+      }
+    } catch (error: any) {
+      console.error('Error saving product:', error);
+      const errorMessage = error.message || 'Une erreur est survenue lors de l\'enregistrement';
+      toast.error(errorMessage);
+      // Don't close modal on error so user can retry
     }
-
-    onClose();
   };
 
   return (

@@ -38,18 +38,21 @@ export function SupplierModal({ open, onClose, supplierId }: SupplierModalProps)
     }
   }, [supplierId, suppliers, open]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (supplierId) {
-      updateSupplier(supplierId, formData);
-      toast.success('Fournisseur modifié avec succès');
-    } else {
-      addSupplier(formData);
-      toast.success('Fournisseur ajouté avec succès');
+    try {
+      if (supplierId) {
+        await updateSupplier(supplierId, formData);
+        toast.success('Fournisseur modifié avec succès');
+      } else {
+        await addSupplier(formData);
+        toast.success('Fournisseur ajouté avec succès');
+      }
+      onClose();
+    } catch (error: any) {
+      toast.error(error.message || 'Une erreur est survenue');
     }
-
-    onClose();
   };
 
   return (
