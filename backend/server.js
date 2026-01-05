@@ -28,6 +28,8 @@ app.use('/api/products', require('./routes/products'));
 app.use('/api/purchase-orders', require('./routes/purchaseOrders'));
 app.use('/api/purchase-order-lines', require('./routes/purchaseOrderLines'));
 app.use('/api/stock-movements', require('./routes/stockMovements'));
+app.use('/api/alerts', require('./routes/alerts'));
+app.use('/api/reports', require('./routes/reports'));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -36,8 +38,8 @@ app.get('/health', (req, res) => {
 
 // Root endpoint
 app.get('/', (req, res) => {
-  res.json({ 
-    message: 'Stock ERP API', 
+  res.json({
+    message: 'Stock ERP API',
     version: '1.0.0',
     endpoints: {
       categories: '/api/categories',

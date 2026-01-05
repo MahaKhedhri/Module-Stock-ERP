@@ -12,7 +12,7 @@ async function request<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
-  
+
   const config: RequestInit = {
     headers: {
       'Content-Type': 'application/json',
@@ -22,7 +22,7 @@ async function request<T>(
   };
 
   let response: Response;
-  
+
   try {
     response = await fetch(url, config);
   } catch (error: any) {
@@ -107,6 +107,17 @@ export const stockMovementsApi = {
   create: (data: any) => request<any>('/stock-movements', { method: 'POST', body: JSON.stringify(data) }),
   update: (id: string, data: any) => request<any>(`/stock-movements/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id: string) => request<void>(`/stock-movements/${id}`, { method: 'DELETE' }),
+};
+
+// Alerts API
+export const alertsApi = {
+  getLowStock: () => request<any[]>('/alerts/low-stock'),
+};
+
+// Reports API
+export const reportsApi = {
+  getDashboardStats: () => request<any>('/reports/dashboard-stats'),
+  getStockValuation: () => request<any[]>('/reports/stock-valuation'),
 };
 
 export { ApiError };
