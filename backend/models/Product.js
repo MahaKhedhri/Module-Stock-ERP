@@ -63,11 +63,21 @@ class Product {
       
       const { name, sku, categoryId, purchasePrice, salePrice, unit, image, minStock, suppliers } = data;
       
+      // Determine sale_price: use provided salePrice, or use first supplier's salePrice, or throw error
+      let finalSalePrice = salePrice;
+      if (!finalSalePrice && suppliers && suppliers.length > 0 && suppliers[0].salePrice) {
+        finalSalePrice = suppliers[0].salePrice;
+      }
+      
+      if (!finalSalePrice || isNaN(parseFloat(finalSalePrice))) {
+        throw new Error('Le prix de vente est requis. Veuillez entrer un prix de vente valide.');
+      }
+      
       // Create product with quantity defaulting to 0
       const result = await client.query(
         `INSERT INTO products (name, sku, category_id, purchase_price, sale_price, quantity, unit, image, supplier_id, min_stock) 
          VALUES ($1, $2, $3, $4, $5, 0, $6, $7, NULL, $8) RETURNING *`,
-        [name, sku, categoryId, purchasePrice || null, salePrice, unit, image || null, minStock || 0]
+        [name, sku, categoryId, purchasePrice || null, parseFloat(finalSalePrice), unit, image || null, minStock || 0]
       );
       const product = result.rows[0];
       

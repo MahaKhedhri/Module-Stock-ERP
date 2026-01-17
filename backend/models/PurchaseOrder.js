@@ -68,6 +68,24 @@ class PurchaseOrder {
       let total = 0;
       for (const line of lines) {
         const { productId, quantity, unitPrice } = line;
+        
+        // Validate non-negative values
+        if (quantity <= 0 || unitPrice < 0) {
+          throw new Error('La quantité doit être supérieure à 0 et le prix ne peut pas être négatif');
+        }
+        
+        // Verify that the product has the supplier configured
+        const supplierCheck = await client.query(
+          `SELECT COUNT(*) as count 
+           FROM product_suppliers 
+           WHERE product_id = $1 AND supplier_id = $2`,
+          [productId, supplierId]
+        );
+        
+        if (parseInt(supplierCheck.rows[0].count) === 0) {
+          throw new Error(`Le produit avec l'ID ${productId} n'est pas configuré pour ce fournisseur`);
+        }
+        
         await client.query(
           `INSERT INTO purchase_order_lines (purchase_order_id, product_id, quantity, unit_price) 
            VALUES ($1, $2, $3, $4)`,
@@ -132,6 +150,10 @@ class PurchaseOrder {
       
       // Update lines if provided
       if (lines) {
+        // Get current supplier_id for validation
+        const currentOrder = await this.findById(id);
+        const currentSupplierId = supplierId || currentOrder.supplier_id;
+        
         // Delete existing lines
         await client.query('DELETE FROM purchase_order_lines WHERE purchase_order_id = $1', [id]);
         
@@ -139,6 +161,24 @@ class PurchaseOrder {
         let total = 0;
         for (const line of lines) {
           const { productId, quantity, unitPrice } = line;
+          
+          // Validate non-negative values
+          if (quantity <= 0 || unitPrice < 0) {
+            throw new Error('La quantité doit être supérieure à 0 et le prix ne peut pas être négatif');
+          }
+          
+          // Verify that the product has the supplier configured
+          const supplierCheck = await client.query(
+            `SELECT COUNT(*) as count 
+             FROM product_suppliers 
+             WHERE product_id = $1 AND supplier_id = $2`,
+            [productId, currentSupplierId]
+          );
+          
+          if (parseInt(supplierCheck.rows[0].count) === 0) {
+            throw new Error(`Le produit avec l'ID ${productId} n'est pas configuré pour ce fournisseur`);
+          }
+          
           await client.query(
             `INSERT INTO purchase_order_lines (purchase_order_id, product_id, quantity, unit_price) 
              VALUES ($1, $2, $3, $4)`,

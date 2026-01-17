@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStock } from '@/contexts/StockContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,8 @@ import { toast } from 'sonner';
 interface PurchaseOrderModalProps {
   open: boolean;
   onClose: () => void;
+  orderId?: string | null;
+  preSelectedProductId?: string | null;
 }
 
 interface OrderLine {
@@ -19,10 +21,60 @@ interface OrderLine {
   unitPrice: number;
 }
 
-export function PurchaseOrderModal({ open, onClose }: PurchaseOrderModalProps) {
-  const { suppliers, products, addPurchaseOrder } = useStock();
+export function PurchaseOrderModal({ open, onClose, orderId, preSelectedProductId }: PurchaseOrderModalProps) {
+  const { suppliers, products, purchaseOrders, addPurchaseOrder, updatePurchaseOrder } = useStock();
   const [supplierId, setSupplierId] = useState('');
   const [lines, setLines] = useState<OrderLine[]>([{ productId: '', quantity: 1, unitPrice: 0 }]);
+
+  // Load order data when editing
+  useEffect(() => {
+    if (open) {
+      if (orderId) {
+        // Editing existing order
+        const order = purchaseOrders.find(po => po.id === orderId);
+        if (order) {
+          setSupplierId(order.supplierId);
+          setLines(order.lines.map(line => ({
+            productId: line.productId,
+            quantity: line.quantity,
+            unitPrice: line.unitPrice
+          })));
+        }
+      } else if (preSelectedProductId) {
+        // Pre-select product from alerts
+        const product = products.find(p => p.id === preSelectedProductId);
+        if (product && product.suppliers && product.suppliers.length > 0) {
+          // Use first supplier
+          const firstSupplier = product.suppliers[0];
+          setSupplierId(firstSupplier.supplierId);
+          setLines([{
+            productId: preSelectedProductId,
+            quantity: 1,
+            unitPrice: firstSupplier.purchasePrice || 0
+          }]);
+        }
+      } else {
+        // New order
+        setSupplierId('');
+        setLines([{ productId: '', quantity: 1, unitPrice: 0 }]);
+      }
+    }
+  }, [open, orderId, preSelectedProductId, purchaseOrders, products]);
+
+  // Filter products that have the selected supplier
+  const availableProducts = supplierId
+    ? products.filter(product => 
+        product.suppliers && product.suppliers.some(s => s.supplierId === supplierId)
+      )
+    : [];
+
+  const handleSupplierChange = (newSupplierId: string) => {
+    setSupplierId(newSupplierId);
+    // Reset lines when supplier changes (only if not editing)
+    if (!orderId) {
+      setLines([{ productId: '', quantity: 1, unitPrice: 0 }]);
+    }
+  };
 
   const addLine = () => {
     setLines([...lines, { productId: '', quantity: 1, unitPrice: 0 }]);
@@ -37,10 +89,17 @@ export function PurchaseOrderModal({ open, onClose }: PurchaseOrderModalProps) {
     newLines[index] = { ...newLines[index], [field]: value };
 
     // Auto-fill price when product is selected
-    if (field === 'productId') {
+    if (field === 'productId' && supplierId) {
       const product = products.find(p => p.id === value);
-      if (product) {
-        newLines[index].unitPrice = product.purchasePrice;
+      if (product && product.suppliers) {
+        // Find the supplier-specific price
+        const supplierInfo = product.suppliers.find(s => s.supplierId === supplierId);
+        if (supplierInfo && supplierInfo.purchasePrice > 0) {
+          newLines[index].unitPrice = supplierInfo.purchasePrice;
+        } else if (product.purchasePrice > 0) {
+          // Fallback to product's default purchase price
+          newLines[index].unitPrice = product.purchasePrice;
+        }
       }
     }
 
@@ -59,39 +118,55 @@ export function PurchaseOrderModal({ open, onClose }: PurchaseOrderModalProps) {
       return;
     }
 
-    if (lines.some(line => !line.productId || line.quantity <= 0)) {
-      toast.error('Veuillez remplir toutes les lignes correctement');
+    if (lines.some(line => !line.productId || line.quantity <= 0 || line.unitPrice < 0)) {
+      toast.error('Veuillez remplir toutes les lignes correctement (quantité > 0, prix >= 0)');
       return;
     }
 
     try {
-      await addPurchaseOrder({
-        supplierId,
-        date: new Date().toISOString().split('T')[0],
-        status: 'draft',
-        lines,
-        total: calculateTotal(),
-      });
-
-      toast.success('Commande créée avec succès');
-      setSupplierId('');
-      setLines([{ productId: '', quantity: 1, unitPrice: 0 }]);
-      onClose();
+      if (orderId) {
+        // Update existing order
+        await updatePurchaseOrder(orderId, {
+          supplierId,
+          lines,
+          total: calculateTotal(),
+        });
+        toast.success('Commande modifiée avec succès');
+      } else {
+        // Create new order
+        await addPurchaseOrder({
+          supplierId,
+          date: new Date().toISOString().split('T')[0],
+          status: 'draft',
+          lines,
+          total: calculateTotal(),
+        });
+        toast.success('Commande créée avec succès');
+      }
+      
+      handleClose();
     } catch (error: any) {
       toast.error(error.message || 'Une erreur est survenue');
     }
   };
 
+  // Reset form when modal closes
+  const handleClose = () => {
+    setSupplierId('');
+    setLines([{ productId: '', quantity: 1, unitPrice: 0 }]);
+    onClose();
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Nouvelle Commande d'Achat</DialogTitle>
+          <DialogTitle>{orderId ? 'Modifier la commande' : 'Nouvelle Commande d\'Achat'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="supplier">Fournisseur *</Label>
-            <Select value={supplierId} onValueChange={setSupplierId}>
+            <Select value={supplierId} onValueChange={handleSupplierChange} disabled={!!orderId}>
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionner un fournisseur" />
               </SelectTrigger>
@@ -101,6 +176,11 @@ export function PurchaseOrderModal({ open, onClose }: PurchaseOrderModalProps) {
                 ))}
               </SelectContent>
             </Select>
+            {supplierId && availableProducts.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                Aucun produit configuré pour ce fournisseur. Veuillez d'abord ajouter ce fournisseur aux produits.
+              </p>
+            )}
           </div>
 
           <div className="space-y-4">
@@ -119,16 +199,22 @@ export function PurchaseOrderModal({ open, onClose }: PurchaseOrderModalProps) {
                   <Select
                     value={line.productId}
                     onValueChange={(value) => updateLine(index, 'productId', value)}
+                    disabled={!supplierId}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner" />
+                      <SelectValue placeholder={supplierId ? "Sélectionner" : "Sélectionnez d'abord un fournisseur"} />
                     </SelectTrigger>
                     <SelectContent>
-                      {products.map(p => (
+                      {availableProducts.map(p => (
                         <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {!supplierId && (
+                    <p className="text-xs text-muted-foreground">
+                      Veuillez d'abord sélectionner un fournisseur
+                    </p>
+                  )}
                 </div>
 
                 <div className="w-24 space-y-2">
@@ -137,7 +223,12 @@ export function PurchaseOrderModal({ open, onClose }: PurchaseOrderModalProps) {
                     type="number"
                     min="1"
                     value={line.quantity}
-                    onChange={(e) => updateLine(index, 'quantity', parseInt(e.target.value))}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      if (!isNaN(val) && val >= 1) {
+                        updateLine(index, 'quantity', val);
+                      }
+                    }}
                   />
                 </div>
 
@@ -146,8 +237,14 @@ export function PurchaseOrderModal({ open, onClose }: PurchaseOrderModalProps) {
                   <Input
                     type="number"
                     step="0.01"
+                    min="0"
                     value={line.unitPrice}
-                    onChange={(e) => updateLine(index, 'unitPrice', parseFloat(e.target.value))}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      if (!isNaN(val) && val >= 0) {
+                        updateLine(index, 'unitPrice', val);
+                      }
+                    }}
                   />
                 </div>
 
@@ -179,11 +276,11 @@ export function PurchaseOrderModal({ open, onClose }: PurchaseOrderModalProps) {
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button type="button" variant="outline" onClick={handleClose}>
               Annuler
             </Button>
-            <Button type="submit">
-              Créer la commande
+            <Button type="submit" disabled={!supplierId || availableProducts.length === 0}>
+              {orderId ? 'Modifier' : 'Créer la commande'}
             </Button>
           </DialogFooter>
         </form>

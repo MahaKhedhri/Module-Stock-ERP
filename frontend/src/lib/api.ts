@@ -111,6 +111,34 @@ export const exitOrdersApi = {
   close: (id: string) => request<any>(`/exit-orders/${id}/close`, { method: 'POST' }),
 };
 
+// Warehouses API
+export const warehousesApi = {
+  getAll: () => request<any[]>('/warehouses'),
+  getById: (id: string) => request<any>(`/warehouses/${id}`),
+  create: (data: any) => request<any>('/warehouses', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: any) => request<any>(`/warehouses/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id: string) => request<void>(`/warehouses/${id}`, { method: 'DELETE' }),
+  assignProduct: (id: string, productId: string, quantity?: number) =>
+    request<any>(`/warehouses/${id}/products`, {
+      method: 'POST',
+      body: JSON.stringify({ productId, quantity: quantity || 0 }),
+    }),
+  removeProduct: (id: string, productId: string) =>
+    request<void>(`/warehouses/${id}/products/${productId}`, {
+      method: 'DELETE',
+    }),
+  updateProductQuantity: (id: string, productId: string, quantity: number) =>
+    request<any>(`/warehouses/${id}/products/quantity`, {
+      method: 'PUT',
+      body: JSON.stringify({ productId, quantity }),
+    }),
+  moveProduct: (fromId: string, toId: string, productId: string, quantity: number) =>
+    request<any>(`/warehouses/${fromId}/products/move`, {
+      method: 'POST',
+      body: JSON.stringify({ toWarehouseId: toId, productId, quantity }),
+    }),
+};
+
 // Stock Movements API
 export const stockMovementsApi = {
   getAll: () => request<any[]>('/stock-movements'),

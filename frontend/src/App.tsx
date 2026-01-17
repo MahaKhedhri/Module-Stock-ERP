@@ -12,8 +12,10 @@ import Categories from "./pages/categories";
 import Suppliers from "./pages/Suppliers";
 import PurchaseOrders from "./pages/PurchaseOrders";
 import ExitOrders from "./pages/ExitOrders";
+import Warehouses from "./pages/Warehouses";
 import StockMovements from "./pages/StockMovements";
 import Alerts from "./pages/Alerts";
+import Archive from "./pages/Archive";
 import Reports from "./pages/Reports";
 
 const queryClient = new QueryClient();
@@ -34,8 +36,10 @@ const App = () => (
                 <Route path="/suppliers" element={<Suppliers />} />
                 <Route path="/purchase-orders" element={<PurchaseOrders />} />
                 <Route path="/exit-orders" element={<ExitOrders />} />
+                <Route path="/warehouses" element={<Warehouses />} />
                 <Route path="/stock-movements" element={<StockMovements />} />
                 <Route path="/alerts" element={<Alerts />} />
+                <Route path="/archive" element={<Archive />} />
                 <Route path="/reports" element={<Reports />} />
               </Routes>
             </AppLayout>

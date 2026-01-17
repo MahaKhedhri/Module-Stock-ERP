@@ -66,6 +66,12 @@ class ExitOrder {
       let total = 0;
       for (const line of lines) {
         const { productId, quantity, unitPrice } = line;
+        
+        // Validate non-negative values
+        if (quantity <= 0 || unitPrice < 0) {
+          throw new Error('La quantité doit être supérieure à 0 et le prix ne peut pas être négatif');
+        }
+        
         await client.query(
           `INSERT INTO exit_order_lines (exit_order_id, product_id, quantity, unit_price) 
            VALUES ($1, $2, $3, $4)`,
@@ -141,6 +147,12 @@ class ExitOrder {
         let total = 0;
         for (const line of lines) {
           const { productId, quantity, unitPrice } = line;
+          
+          // Validate non-negative values
+          if (quantity <= 0 || unitPrice < 0) {
+            throw new Error('La quantité doit être supérieure à 0 et le prix ne peut pas être négatif');
+          }
+          
           await client.query(
             `INSERT INTO exit_order_lines (exit_order_id, product_id, quantity, unit_price) 
              VALUES ($1, $2, $3, $4)`,

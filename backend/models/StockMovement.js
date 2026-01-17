@@ -29,6 +29,11 @@ class StockMovement {
       
       const { productId, type, quantity, date, reference, note } = data;
       
+      // Validate quantity is positive
+      if (quantity <= 0) {
+        throw new Error('La quantité doit être supérieure à 0');
+      }
+      
       // Create stock movement
       const result = await client.query(
         `INSERT INTO stock_movements (product_id, type, quantity, date, reference, note) 
@@ -37,21 +42,32 @@ class StockMovement {
       );
       const movement = result.rows[0];
       
-      // Update product quantity
+      // Update product quantity and check for negative stock
       if (type === 'in') {
         await client.query(
           'UPDATE products SET quantity = quantity + $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
           [quantity, productId]
         );
       } else if (type === 'out') {
+        // Check if we have enough stock
+        const productCheck = await client.query('SELECT quantity FROM products WHERE id = $1', [productId]);
+        if (productCheck.rows.length === 0) {
+          throw new Error('Produit non trouvé');
+        }
+        const currentQuantity = parseInt(productCheck.rows[0].quantity);
+        if (currentQuantity < quantity) {
+          throw new Error(`Stock insuffisant. Disponible: ${currentQuantity}, Demandé: ${quantity}`);
+        }
         await client.query(
-          'UPDATE products SET quantity = quantity - $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
-          [Math.abs(quantity), productId]
+          'UPDATE products SET quantity = GREATEST(0, quantity - $1), updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+          [quantity, productId]
         );
       } else if (type === 'adjustment') {
+        // For adjustment, ensure final quantity is not negative
+        const finalQuantity = Math.max(0, quantity);
         await client.query(
-          'UPDATE products SET quantity = quantity + $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
-          [quantity, productId]
+          'UPDATE products SET quantity = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+          [finalQuantity, productId]
         );
       }
       

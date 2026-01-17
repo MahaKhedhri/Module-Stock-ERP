@@ -56,8 +56,8 @@ export function ExitOrderModal({ open, onClose }: ExitOrderModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (lines.some(line => !line.productId || line.quantity <= 0)) {
-      toast.error('Veuillez remplir toutes les lignes correctement');
+    if (lines.some(line => !line.productId || line.quantity <= 0 || line.unitPrice < 0)) {
+      toast.error('Veuillez remplir toutes les lignes correctement (quantité > 0, prix >= 0)');
       return;
     }
 
@@ -166,7 +166,12 @@ export function ExitOrderModal({ open, onClose }: ExitOrderModalProps) {
                       min="1"
                       max={availableStock}
                       value={line.quantity}
-                      onChange={(e) => updateLine(index, 'quantity', parseInt(e.target.value))}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value);
+                        if (!isNaN(val) && val >= 1 && val <= availableStock) {
+                          updateLine(index, 'quantity', val);
+                        }
+                      }}
                       className={isStockInsufficient ? 'border-red-500' : ''}
                     />
                     {isStockInsufficient && (
@@ -179,8 +184,14 @@ export function ExitOrderModal({ open, onClose }: ExitOrderModalProps) {
                     <Input
                       type="number"
                       step="0.01"
+                      min="0"
                       value={line.unitPrice}
-                      onChange={(e) => updateLine(index, 'unitPrice', parseFloat(e.target.value))}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value);
+                        if (!isNaN(val) && val >= 0) {
+                          updateLine(index, 'unitPrice', val);
+                        }
+                      }}
                     />
                   </div>
 

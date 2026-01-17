@@ -13,6 +13,8 @@ import {
 import { AlertTriangle, ShoppingCart } from 'lucide-react';
 import { alertsApi } from '@/lib/api';
 import { toast } from 'sonner';
+import { useStock } from '@/contexts/StockContext';
+import { PurchaseOrderModal } from '@/components/modals/PurchaseOrderModal';
 
 interface AlertProduct {
     id: string;
@@ -25,9 +27,12 @@ interface AlertProduct {
 }
 
 export default function Alerts() {
+    const { products: allProducts, suppliers, addPurchaseOrder } = useStock();
     const [products, setProducts] = useState<AlertProduct[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+    const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
 
     const fetchAlerts = async () => {
         try {
@@ -108,7 +113,15 @@ export default function Alerts() {
                                     )}
                                 </TableCell>
                                 <TableCell className="text-right">
-                                    <Button size="sm" variant="default" className="gap-2">
+                                    <Button 
+                                        size="sm" 
+                                        variant="default" 
+                                        className="gap-2"
+                                        onClick={() => {
+                                            setSelectedProductId(product.id);
+                                            setIsOrderModalOpen(true);
+                                        }}
+                                    >
                                         <ShoppingCart className="h-4 w-4" />
                                         Commander
                                     </Button>
@@ -133,6 +146,15 @@ export default function Alerts() {
                     </TableBody>
                 </Table>
             </Card>
+
+            <PurchaseOrderModal 
+                open={isOrderModalOpen} 
+                onClose={() => {
+                    setIsOrderModalOpen(false);
+                    setSelectedProductId(null);
+                }}
+                preSelectedProductId={selectedProductId}
+            />
         </div>
     );
 }

@@ -103,7 +103,12 @@ export function StockMovementModal({ open, onClose, defaultType = 'out' }: Stock
                             type="number"
                             min="1"
                             value={formData.quantity}
-                            onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === '' || (parseInt(val) >= 1)) {
+                                setFormData({ ...formData, quantity: val });
+                              }
+                            }}
                             required
                         />
                     </div>

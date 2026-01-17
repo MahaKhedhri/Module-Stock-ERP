@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { categoriesApi, suppliersApi, productsApi, purchaseOrdersApi, exitOrdersApi, stockMovementsApi } from '@/lib/api';
+import { categoriesApi, suppliersApi, productsApi, purchaseOrdersApi, exitOrdersApi, warehousesApi, stockMovementsApi } from '@/lib/api';
 
 export interface ProductSupplier {
   id: string;
@@ -79,12 +79,32 @@ export interface StockMovement {
   note?: string;
 }
 
+export interface WarehouseProduct {
+  id: string;
+  productId: string;
+  productName: string;
+  sku: string;
+  quantity: number;
+  unit: string;
+  image?: string;
+}
+
+export interface Warehouse {
+  id: string;
+  name: string;
+  address?: string;
+  description?: string;
+  productCount: number;
+  products?: WarehouseProduct[];
+}
+
 interface StockContextType {
   products: Product[];
   categories: Category[];
   suppliers: Supplier[];
   purchaseOrders: PurchaseOrder[];
   exitOrders: ExitOrder[];
+  warehouses: Warehouse[];
   stockMovements: StockMovement[];
   loading: boolean;
   error: string | null;
@@ -100,10 +120,17 @@ interface StockContextType {
   addPurchaseOrder: (order: Omit<PurchaseOrder, 'id'>) => Promise<void>;
   updatePurchaseOrder: (id: string, order: Partial<PurchaseOrder>) => Promise<void>;
   receivePurchaseOrder: (id: string) => Promise<void>;
+  deletePurchaseOrder: (id: string) => Promise<void>;
   addExitOrder: (order: Omit<ExitOrder, 'id'>) => Promise<void>;
   updateExitOrder: (id: string, order: Partial<ExitOrder>) => Promise<void>;
   confirmExitOrder: (id: string) => Promise<void>;
   closeExitOrder: (id: string) => Promise<void>;
+  addWarehouse: (warehouse: Omit<Warehouse, 'id'>) => Promise<void>;
+  updateWarehouse: (id: string, warehouse: Partial<Warehouse>) => Promise<void>;
+  deleteWarehouse: (id: string) => Promise<void>;
+  assignProductToWarehouse: (warehouseId: string, productId: string, quantity?: number) => Promise<void>;
+  removeProductFromWarehouse: (warehouseId: string, productId: string) => Promise<void>;
+  moveProductBetweenWarehouses: (fromWarehouseId: string, toWarehouseId: string, productId: string, quantity: number) => Promise<void>;
   addStockMovement: (movement: Omit<StockMovement, 'id'>) => Promise<void>;
   adjustStock: (productId: string, quantity: number, note?: string) => Promise<void>;
   refresh: () => Promise<void>;
@@ -117,6 +144,7 @@ export const StockProvider = ({ children }: { children: ReactNode }) => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [exitOrders, setExitOrders] = useState<ExitOrder[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -126,20 +154,25 @@ export const StockProvider = ({ children }: { children: ReactNode }) => {
       setLoading(true);
       setError(null);
       
-      const [categoriesData, suppliersData, productsData, ordersData, exitOrdersData, movementsData] = await Promise.all([
+      const [categoriesData, suppliersData, productsData, ordersData, exitOrdersData, warehousesDataRaw, movementsData] = await Promise.all([
         categoriesApi.getAll(),
         suppliersApi.getAll(),
         productsApi.getAll(),
         purchaseOrdersApi.getAll(),
         exitOrdersApi.getAll(),
+        warehousesApi.getAll(),
         stockMovementsApi.getAll(),
       ]);
+
+      // warehousesDataRaw already contains products from getAll()
+      const warehousesData = warehousesDataRaw;
 
       setCategories(categoriesData);
       setSuppliers(suppliersData);
       setProducts(productsData);
       setPurchaseOrders(ordersData);
       setExitOrders(exitOrdersData);
+      setWarehouses(warehousesData);
       setStockMovements(movementsData);
     } catch (err: any) {
       console.error('Error loading data:', err);
@@ -285,6 +318,16 @@ export const StockProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const deletePurchaseOrder = async (id: string) => {
+    try {
+      await purchaseOrdersApi.delete(id);
+      setPurchaseOrders(purchaseOrders.filter(po => po.id !== id));
+    } catch (err: any) {
+      console.error('Error deleting purchase order:', err);
+      throw err;
+    }
+  };
+
   const addExitOrder = async (order: Omit<ExitOrder, 'id'>) => {
     try {
       const newOrder = await exitOrdersApi.create(order);
@@ -328,6 +371,78 @@ export const StockProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const addWarehouse = async (warehouse: Omit<Warehouse, 'id'>) => {
+    try {
+      const newWarehouse = await warehousesApi.create(warehouse);
+      setWarehouses([...warehouses, newWarehouse]);
+    } catch (err: any) {
+      console.error('Error adding warehouse:', err);
+      throw err;
+    }
+  };
+
+  const updateWarehouse = async (id: string, warehouse: Partial<Warehouse>) => {
+    try {
+      const updatedWarehouse = await warehousesApi.update(id, warehouse);
+      setWarehouses(warehouses.map(w => w.id === id ? updatedWarehouse : w));
+    } catch (err: any) {
+      console.error('Error updating warehouse:', err);
+      throw err;
+    }
+  };
+
+  const deleteWarehouse = async (id: string) => {
+    try {
+      await warehousesApi.delete(id);
+      setWarehouses(warehouses.filter(w => w.id !== id));
+    } catch (err: any) {
+      console.error('Error deleting warehouse:', err);
+      throw err;
+    }
+  };
+
+  const assignProductToWarehouse = async (warehouseId: string, productId: string, quantity?: number) => {
+    try {
+      // Ensure quantity is provided, default to product's current quantity if not specified
+      let qty = quantity;
+      if (qty === undefined || qty === null) {
+        const product = products.find(p => p.id === productId);
+        qty = product?.quantity || 0;
+      }
+      await warehousesApi.assignProduct(warehouseId, productId, qty);
+      // Reload warehouses to get updated data
+      const warehousesData = await warehousesApi.getAll();
+      setWarehouses(warehousesData);
+    } catch (err: any) {
+      console.error('Error assigning product to warehouse:', err);
+      throw err;
+    }
+  };
+
+  const removeProductFromWarehouse = async (warehouseId: string, productId: string) => {
+    try {
+      await warehousesApi.removeProduct(warehouseId, productId);
+      // Reload warehouses to get updated data
+      const warehousesData = await warehousesApi.getAll();
+      setWarehouses(warehousesData);
+    } catch (err: any) {
+      console.error('Error removing product from warehouse:', err);
+      throw err;
+    }
+  };
+
+  const moveProductBetweenWarehouses = async (fromWarehouseId: string, toWarehouseId: string, productId: string, quantity: number) => {
+    try {
+      await warehousesApi.moveProduct(fromWarehouseId, toWarehouseId, productId, quantity);
+      // Reload warehouses to get updated data
+      const warehousesData = await warehousesApi.getAll();
+      setWarehouses(warehousesData);
+    } catch (err: any) {
+      console.error('Error moving product between warehouses:', err);
+      throw err;
+    }
+  };
+
   const addStockMovement = async (movement: Omit<StockMovement, 'id'>) => {
     try {
       const newMovement = await stockMovementsApi.create(movement);
@@ -361,6 +476,7 @@ export const StockProvider = ({ children }: { children: ReactNode }) => {
         suppliers,
         purchaseOrders,
         exitOrders,
+        warehouses,
         stockMovements,
         loading,
         error,
@@ -376,10 +492,17 @@ export const StockProvider = ({ children }: { children: ReactNode }) => {
         addPurchaseOrder,
         updatePurchaseOrder,
         receivePurchaseOrder,
+        deletePurchaseOrder,
         addExitOrder,
         updateExitOrder,
         confirmExitOrder,
         closeExitOrder,
+        addWarehouse,
+        updateWarehouse,
+        deleteWarehouse,
+        assignProductToWarehouse,
+        removeProductFromWarehouse,
+        moveProductBetweenWarehouses,
         addStockMovement,
         adjustStock,
         refresh: loadData,
