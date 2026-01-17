@@ -11,6 +11,7 @@ import Products from "./pages/Products";
 import Categories from "./pages/categories";
 import Suppliers from "./pages/Suppliers";
 import PurchaseOrders from "./pages/PurchaseOrders";
+import ExitOrders from "./pages/ExitOrders";
 import StockMovements from "./pages/StockMovements";
 import Alerts from "./pages/Alerts";
 import Reports from "./pages/Reports";
@@ -32,6 +33,7 @@ const App = () => (
                 <Route path="/categories" element={<Categories />} />
                 <Route path="/suppliers" element={<Suppliers />} />
                 <Route path="/purchase-orders" element={<PurchaseOrders />} />
+                <Route path="/exit-orders" element={<ExitOrders />} />
                 <Route path="/stock-movements" element={<StockMovements />} />
                 <Route path="/alerts" element={<Alerts />} />
                 <Route path="/reports" element={<Reports />} />

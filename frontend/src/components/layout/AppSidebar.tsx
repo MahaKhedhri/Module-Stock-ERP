@@ -1,4 +1,4 @@
-import { LayoutDashboard, Package, FolderKanban, Users, ShoppingCart, TrendingUp, AlertTriangle, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, Package, FolderKanban, Users, ShoppingCart, LogOut, Warehouse, TrendingUp, AlertTriangle, BarChart3 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
 import {
@@ -15,10 +15,12 @@ import {
 
 const menuItems = [
   { title: 'Tableau de bord', url: '/', icon: LayoutDashboard },
-  { title: 'Produits', url: '/products', icon: Package },
-  { title: 'Catégories', url: '/categories', icon: FolderKanban },
   { title: 'Fournisseurs', url: '/suppliers', icon: Users },
+  { title: 'Catégories', url: '/categories', icon: FolderKanban },
+  { title: 'Produits', url: '/products', icon: Package },
   { title: 'Commandes d\'achat', url: '/purchase-orders', icon: ShoppingCart },
+  { title: 'Commandes de sortie', url: '/exit-orders', icon: LogOut },
+  { title: 'Entrepôts', url: '/warehouses', icon: Warehouse },
   { title: 'Mouvements', url: '/stock-movements', icon: TrendingUp },
   { title: 'Alertes', url: '/alerts', icon: AlertTriangle },
   { title: 'Rapports', url: '/reports', icon: BarChart3 },

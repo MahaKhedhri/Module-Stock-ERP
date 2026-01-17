@@ -72,13 +72,20 @@ const formatProduct = (product) => ({
   name: product.name,
   sku: product.sku,
   categoryId: product.category_id.toString(),
-  purchasePrice: parseFloat(product.purchase_price),
+  purchasePrice: parseFloat(product.purchase_price || 0),
   salePrice: parseFloat(product.sale_price),
   quantity: parseInt(product.quantity),
   unit: product.unit,
   image: product.image,
-  supplierId: product.supplier_id.toString(),
-  minStock: parseInt(product.min_stock)
+  supplierId: product.supplier_id ? product.supplier_id.toString() : null,
+  minStock: parseInt(product.min_stock),
+  suppliers: product.suppliers ? product.suppliers.map(s => ({
+    id: s.id.toString(),
+    supplierId: s.supplier_id.toString(),
+    supplierName: s.supplier_name,
+    purchasePrice: parseFloat(s.purchase_price || 0),
+    salePrice: parseFloat(s.sale_price || 0)
+  })) : []
 });
 
 module.exports = {

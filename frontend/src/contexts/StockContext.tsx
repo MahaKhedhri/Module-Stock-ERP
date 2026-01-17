@@ -1,5 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { categoriesApi, suppliersApi, productsApi, purchaseOrdersApi, stockMovementsApi } from '@/lib/api';
+import { categoriesApi, suppliersApi, productsApi, purchaseOrdersApi, exitOrdersApi, stockMovementsApi } from '@/lib/api';
+
+export interface ProductSupplier {
+  id: string;
+  supplierId: string;
+  supplierName?: string;
+  purchasePrice: number;
+  salePrice: number;
+}
 
 export interface Product {
   id: string;
@@ -11,8 +19,9 @@ export interface Product {
   quantity: number;
   unit: string;
   image?: string;
-  supplierId: string;
+  supplierId: string | null;
   minStock: number;
+  suppliers?: ProductSupplier[];
 }
 
 export interface Category {
@@ -44,6 +53,22 @@ export interface PurchaseOrder {
   total: number;
 }
 
+export interface ExitOrderLine {
+  productId: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+export interface ExitOrder {
+  id: string;
+  customerName?: string;
+  date: string;
+  status: 'draft' | 'confirmed' | 'closed';
+  lines: ExitOrderLine[];
+  total: number;
+  note?: string;
+}
+
 export interface StockMovement {
   id: string;
   productId: string;
@@ -59,6 +84,7 @@ interface StockContextType {
   categories: Category[];
   suppliers: Supplier[];
   purchaseOrders: PurchaseOrder[];
+  exitOrders: ExitOrder[];
   stockMovements: StockMovement[];
   loading: boolean;
   error: string | null;
@@ -74,6 +100,10 @@ interface StockContextType {
   addPurchaseOrder: (order: Omit<PurchaseOrder, 'id'>) => Promise<void>;
   updatePurchaseOrder: (id: string, order: Partial<PurchaseOrder>) => Promise<void>;
   receivePurchaseOrder: (id: string) => Promise<void>;
+  addExitOrder: (order: Omit<ExitOrder, 'id'>) => Promise<void>;
+  updateExitOrder: (id: string, order: Partial<ExitOrder>) => Promise<void>;
+  confirmExitOrder: (id: string) => Promise<void>;
+  closeExitOrder: (id: string) => Promise<void>;
   addStockMovement: (movement: Omit<StockMovement, 'id'>) => Promise<void>;
   adjustStock: (productId: string, quantity: number, note?: string) => Promise<void>;
   refresh: () => Promise<void>;
@@ -86,6 +116,7 @@ export const StockProvider = ({ children }: { children: ReactNode }) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
+  const [exitOrders, setExitOrders] = useState<ExitOrder[]>([]);
   const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -95,11 +126,12 @@ export const StockProvider = ({ children }: { children: ReactNode }) => {
       setLoading(true);
       setError(null);
       
-      const [categoriesData, suppliersData, productsData, ordersData, movementsData] = await Promise.all([
+      const [categoriesData, suppliersData, productsData, ordersData, exitOrdersData, movementsData] = await Promise.all([
         categoriesApi.getAll(),
         suppliersApi.getAll(),
         productsApi.getAll(),
         purchaseOrdersApi.getAll(),
+        exitOrdersApi.getAll(),
         stockMovementsApi.getAll(),
       ]);
 
@@ -107,6 +139,7 @@ export const StockProvider = ({ children }: { children: ReactNode }) => {
       setSuppliers(suppliersData);
       setProducts(productsData);
       setPurchaseOrders(ordersData);
+      setExitOrders(exitOrdersData);
       setStockMovements(movementsData);
     } catch (err: any) {
       console.error('Error loading data:', err);
@@ -252,6 +285,49 @@ export const StockProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const addExitOrder = async (order: Omit<ExitOrder, 'id'>) => {
+    try {
+      const newOrder = await exitOrdersApi.create(order);
+      setExitOrders([...exitOrders, newOrder]);
+    } catch (err: any) {
+      console.error('Error adding exit order:', err);
+      throw err;
+    }
+  };
+
+  const updateExitOrder = async (id: string, order: Partial<ExitOrder>) => {
+    try {
+      const updatedOrder = await exitOrdersApi.update(id, order);
+      setExitOrders(exitOrders.map(eo => eo.id === id ? updatedOrder : eo));
+    } catch (err: any) {
+      console.error('Error updating exit order:', err);
+      throw err;
+    }
+  };
+
+  const confirmExitOrder = async (id: string) => {
+    try {
+      const updatedOrder = await exitOrdersApi.confirm(id);
+      setExitOrders(exitOrders.map(eo => eo.id === id ? updatedOrder : eo));
+      // Reload products to get updated quantities
+      const productsData = await productsApi.getAll();
+      setProducts(productsData);
+    } catch (err: any) {
+      console.error('Error confirming exit order:', err);
+      throw err;
+    }
+  };
+
+  const closeExitOrder = async (id: string) => {
+    try {
+      const updatedOrder = await exitOrdersApi.close(id);
+      setExitOrders(exitOrders.map(eo => eo.id === id ? updatedOrder : eo));
+    } catch (err: any) {
+      console.error('Error closing exit order:', err);
+      throw err;
+    }
+  };
+
   const addStockMovement = async (movement: Omit<StockMovement, 'id'>) => {
     try {
       const newMovement = await stockMovementsApi.create(movement);
@@ -284,6 +360,7 @@ export const StockProvider = ({ children }: { children: ReactNode }) => {
         categories,
         suppliers,
         purchaseOrders,
+        exitOrders,
         stockMovements,
         loading,
         error,
@@ -299,6 +376,10 @@ export const StockProvider = ({ children }: { children: ReactNode }) => {
         addPurchaseOrder,
         updatePurchaseOrder,
         receivePurchaseOrder,
+        addExitOrder,
+        updateExitOrder,
+        confirmExitOrder,
+        closeExitOrder,
         addStockMovement,
         adjustStock,
         refresh: loadData,

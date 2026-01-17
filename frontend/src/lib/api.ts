@@ -100,6 +100,17 @@ export const purchaseOrdersApi = {
   receive: (id: string) => request<any>(`/purchase-orders/${id}/receive`, { method: 'POST' }),
 };
 
+// Exit Orders API
+export const exitOrdersApi = {
+  getAll: () => request<any[]>('/exit-orders'),
+  getById: (id: string) => request<any>(`/exit-orders/${id}`),
+  create: (data: any) => request<any>('/exit-orders', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: any) => request<any>(`/exit-orders/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id: string) => request<void>(`/exit-orders/${id}`, { method: 'DELETE' }),
+  confirm: (id: string) => request<any>(`/exit-orders/${id}/confirm`, { method: 'POST' }),
+  close: (id: string) => request<any>(`/exit-orders/${id}/close`, { method: 'POST' }),
+};
+
 // Stock Movements API
 export const stockMovementsApi = {
   getAll: () => request<any[]>('/stock-movements'),

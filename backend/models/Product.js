@@ -11,6 +11,18 @@ class Product {
       LEFT JOIN suppliers s ON p.supplier_id = s.id
       ORDER BY p.id
     `);
+    
+    // Get suppliers for each product
+    for (let product of result.rows) {
+      const suppliersResult = await pool.query(`
+        SELECT ps.*, s.name as supplier_name, s.email, s.phone, s.address
+        FROM product_suppliers ps
+        LEFT JOIN suppliers s ON ps.supplier_id = s.id
+        WHERE ps.product_id = $1
+      `, [product.id]);
+      product.suppliers = suppliersResult.rows;
+    }
+    
     return result.rows;
   }
 
@@ -24,56 +36,129 @@ class Product {
       LEFT JOIN suppliers s ON p.supplier_id = s.id
       WHERE p.id = $1
     `, [id]);
-    return result.rows[0];
+    
+    if (result.rows.length === 0) {
+      return null;
+    }
+    
+    const product = result.rows[0];
+    
+    // Get suppliers for this product
+    const suppliersResult = await pool.query(`
+      SELECT ps.*, s.name as supplier_name, s.email, s.phone, s.address
+      FROM product_suppliers ps
+      LEFT JOIN suppliers s ON ps.supplier_id = s.id
+      WHERE ps.product_id = $1
+    `, [id]);
+    product.suppliers = suppliersResult.rows;
+    
+    return product;
   }
 
   static async create(data) {
-    const { name, sku, categoryId, purchasePrice, salePrice, quantity, unit, image, supplierId, minStock } = data;
-    const result = await pool.query(
-      `INSERT INTO products (name, sku, category_id, purchase_price, sale_price, quantity, unit, image, supplier_id, min_stock) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
-      [name, sku, categoryId, purchasePrice, salePrice, quantity || 0, unit, image || null, supplierId, minStock || 0]
-    );
-    return result.rows[0];
+    const client = await pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+      
+      const { name, sku, categoryId, purchasePrice, salePrice, unit, image, minStock, suppliers } = data;
+      
+      // Create product with quantity defaulting to 0
+      const result = await client.query(
+        `INSERT INTO products (name, sku, category_id, purchase_price, sale_price, quantity, unit, image, supplier_id, min_stock) 
+         VALUES ($1, $2, $3, $4, $5, 0, $6, $7, NULL, $8) RETURNING *`,
+        [name, sku, categoryId, purchasePrice || null, salePrice, unit, image || null, minStock || 0]
+      );
+      const product = result.rows[0];
+      
+      // Add suppliers if provided
+      if (suppliers && Array.isArray(suppliers) && suppliers.length > 0) {
+        for (const supplier of suppliers) {
+          await client.query(
+            `INSERT INTO product_suppliers (product_id, supplier_id, purchase_price, sale_price)
+             VALUES ($1, $2, $3, $4)
+             ON CONFLICT (product_id, supplier_id) 
+             DO UPDATE SET purchase_price = EXCLUDED.purchase_price, sale_price = EXCLUDED.sale_price`,
+            [product.id, supplier.supplierId, supplier.purchasePrice || purchasePrice || 0, supplier.salePrice || salePrice]
+          );
+        }
+      }
+      
+      await client.query('COMMIT');
+      return await this.findById(product.id);
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   static async update(id, data) {
-    const fields = [];
-    const values = [];
-    let paramCount = 1;
+    const client = await pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+      
+      const fields = [];
+      const values = [];
+      let paramCount = 1;
 
-    const fieldMap = {
-      name: 'name',
-      sku: 'sku',
-      categoryId: 'category_id',
-      purchasePrice: 'purchase_price',
-      salePrice: 'sale_price',
-      quantity: 'quantity',
-      unit: 'unit',
-      image: 'image',
-      supplierId: 'supplier_id',
-      minStock: 'min_stock'
-    };
+      const fieldMap = {
+        name: 'name',
+        sku: 'sku',
+        categoryId: 'category_id',
+        purchasePrice: 'purchase_price',
+        salePrice: 'sale_price',
+        quantity: 'quantity',
+        unit: 'unit',
+        image: 'image',
+        supplierId: 'supplier_id',
+        minStock: 'min_stock'
+      };
 
-    Object.keys(data).forEach(key => {
-      if (data[key] !== undefined && fieldMap[key]) {
-        fields.push(`${fieldMap[key]} = $${paramCount++}`);
-        values.push(data[key]);
+      Object.keys(data).forEach(key => {
+        if (data[key] !== undefined && fieldMap[key] && key !== 'suppliers') {
+          fields.push(`${fieldMap[key]} = $${paramCount++}`);
+          values.push(data[key]);
+        }
+      });
+
+      if (fields.length > 0) {
+        fields.push(`updated_at = CURRENT_TIMESTAMP`);
+        values.push(id);
+        await client.query(
+          `UPDATE products SET ${fields.join(', ')} WHERE id = $${paramCount} RETURNING *`,
+          values
+        );
       }
-    });
-
-    if (fields.length === 0) {
+      
+      // Update suppliers if provided
+      if (data.suppliers !== undefined) {
+        // Delete existing suppliers
+        await client.query('DELETE FROM product_suppliers WHERE product_id = $1', [id]);
+        
+        // Add new suppliers
+        if (Array.isArray(data.suppliers) && data.suppliers.length > 0) {
+          const product = await this.findById(id);
+          for (const supplier of data.suppliers) {
+            await client.query(
+              `INSERT INTO product_suppliers (product_id, supplier_id, purchase_price, sale_price)
+               VALUES ($1, $2, $3, $4)`,
+              [id, supplier.supplierId, supplier.purchasePrice || product.purchase_price || 0, supplier.salePrice || product.sale_price]
+            );
+          }
+        }
+      }
+      
+      await client.query('COMMIT');
       return await this.findById(id);
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
     }
-
-    fields.push(`updated_at = CURRENT_TIMESTAMP`);
-    values.push(id);
-
-    const result = await pool.query(
-      `UPDATE products SET ${fields.join(', ')} WHERE id = $${paramCount} RETURNING *`,
-      values
-    );
-    return result.rows[0];
   }
 
   static async delete(id) {

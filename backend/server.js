@@ -27,6 +27,7 @@ app.use('/api/suppliers', require('./routes/suppliers'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/purchase-orders', require('./routes/purchaseOrders'));
 app.use('/api/purchase-order-lines', require('./routes/purchaseOrderLines'));
+app.use('/api/exit-orders', require('./routes/exitOrders'));
 app.use('/api/stock-movements', require('./routes/stockMovements'));
 app.use('/api/alerts', require('./routes/alerts'));
 app.use('/api/reports', require('./routes/reports'));
