@@ -87,6 +87,8 @@ export interface WarehouseProduct {
   quantity: number;
   unit: string;
   image?: string;
+  shelf?: string;
+  expirationDate?: string;
 }
 
 export interface Warehouse {
@@ -96,6 +98,8 @@ export interface Warehouse {
   description?: string;
   productCount: number;
   products?: WarehouseProduct[];
+  zones?: { id: string; name: string; description: string }[];
+  shelves?: string;
 }
 
 interface StockContextType {
@@ -125,12 +129,12 @@ interface StockContextType {
   updateExitOrder: (id: string, order: Partial<ExitOrder>) => Promise<void>;
   confirmExitOrder: (id: string) => Promise<void>;
   closeExitOrder: (id: string) => Promise<void>;
-  addWarehouse: (warehouse: Omit<Warehouse, 'id'>) => Promise<void>;
-  updateWarehouse: (id: string, warehouse: Partial<Warehouse>) => Promise<void>;
+  addWarehouse: (warehouse: any) => Promise<void>;
+  updateWarehouse: (id: string, warehouse: any) => Promise<void>;
   deleteWarehouse: (id: string) => Promise<void>;
-  assignProductToWarehouse: (warehouseId: string, productId: string, quantity?: number) => Promise<void>;
+  assignProductToWarehouse: (warehouseId: string, productId: string, quantity?: number, shelf?: string, expirationDate?: string, zoneId?: string | null) => Promise<void>;
   removeProductFromWarehouse: (warehouseId: string, productId: string) => Promise<void>;
-  moveProductBetweenWarehouses: (fromWarehouseId: string, toWarehouseId: string, productId: string, quantity: number) => Promise<void>;
+  moveProductBetweenWarehouses: (fromWarehouseId: string, toWarehouseId: string, productId: string, quantity: number, shelf?: string, expirationDate?: string, zoneId?: string | null) => Promise<void>;
   addStockMovement: (movement: Omit<StockMovement, 'id'>) => Promise<void>;
   adjustStock: (productId: string, quantity: number, note?: string) => Promise<void>;
   refresh: () => Promise<void>;
@@ -153,7 +157,7 @@ export const StockProvider = ({ children }: { children: ReactNode }) => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const [categoriesData, suppliersData, productsData, ordersData, exitOrdersData, warehousesDataRaw, movementsData] = await Promise.all([
         categoriesApi.getAll(),
         suppliersApi.getAll(),
@@ -371,7 +375,7 @@ export const StockProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const addWarehouse = async (warehouse: Omit<Warehouse, 'id'>) => {
+  const addWarehouse = async (warehouse: any) => {
     try {
       const newWarehouse = await warehousesApi.create(warehouse);
       setWarehouses([...warehouses, newWarehouse]);
@@ -381,7 +385,7 @@ export const StockProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const updateWarehouse = async (id: string, warehouse: Partial<Warehouse>) => {
+  const updateWarehouse = async (id: string, warehouse: any) => {
     try {
       const updatedWarehouse = await warehousesApi.update(id, warehouse);
       setWarehouses(warehouses.map(w => w.id === id ? updatedWarehouse : w));
@@ -401,7 +405,7 @@ export const StockProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const assignProductToWarehouse = async (warehouseId: string, productId: string, quantity?: number) => {
+  const assignProductToWarehouse = async (warehouseId: string, productId: string, quantity?: number, shelf?: string, expirationDate?: string, zoneId?: string | null) => {
     try {
       // Ensure quantity is provided, default to product's current quantity if not specified
       let qty = quantity;
@@ -409,7 +413,7 @@ export const StockProvider = ({ children }: { children: ReactNode }) => {
         const product = products.find(p => p.id === productId);
         qty = product?.quantity || 0;
       }
-      await warehousesApi.assignProduct(warehouseId, productId, qty);
+      await warehousesApi.assignProduct(warehouseId, productId, qty, shelf, expirationDate, zoneId);
       // Reload warehouses to get updated data
       const warehousesData = await warehousesApi.getAll();
       setWarehouses(warehousesData);
@@ -431,9 +435,9 @@ export const StockProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const moveProductBetweenWarehouses = async (fromWarehouseId: string, toWarehouseId: string, productId: string, quantity: number) => {
+  const moveProductBetweenWarehouses = async (fromWarehouseId: string, toWarehouseId: string, productId: string, quantity: number, shelf?: string, expirationDate?: string, zoneId?: string | null) => {
     try {
-      await warehousesApi.moveProduct(fromWarehouseId, toWarehouseId, productId, quantity);
+      await warehousesApi.moveProduct(fromWarehouseId, toWarehouseId, productId, quantity, shelf, expirationDate, zoneId);
       // Reload warehouses to get updated data
       const warehousesData = await warehousesApi.getAll();
       setWarehouses(warehousesData);

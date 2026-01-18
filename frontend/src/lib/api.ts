@@ -118,10 +118,16 @@ export const warehousesApi = {
   create: (data: any) => request<any>('/warehouses', { method: 'POST', body: JSON.stringify(data) }),
   update: (id: string, data: any) => request<any>(`/warehouses/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id: string) => request<void>(`/warehouses/${id}`, { method: 'DELETE' }),
-  assignProduct: (id: string, productId: string, quantity?: number) =>
+  assignProduct: (id: string, productId: string, quantity?: number, shelf?: string, expirationDate?: string, zoneId?: string | null) =>
     request<any>(`/warehouses/${id}/products`, {
       method: 'POST',
-      body: JSON.stringify({ productId, quantity: quantity || 0 }),
+      body: JSON.stringify({
+        productId,
+        quantity: quantity || 0,
+        shelf,
+        expirationDate: expirationDate || undefined,
+        zoneId: zoneId === '' ? null : zoneId
+      }),
     }),
   removeProduct: (id: string, productId: string) =>
     request<void>(`/warehouses/${id}/products/${productId}`, {
@@ -132,10 +138,17 @@ export const warehousesApi = {
       method: 'PUT',
       body: JSON.stringify({ productId, quantity }),
     }),
-  moveProduct: (fromId: string, toId: string, productId: string, quantity: number) =>
+  moveProduct: (fromId: string, toId: string, productId: string, quantity: number, shelf?: string, expirationDate?: string, zoneId?: string | null) =>
     request<any>(`/warehouses/${fromId}/products/move`, {
       method: 'POST',
-      body: JSON.stringify({ toWarehouseId: toId, productId, quantity }),
+      body: JSON.stringify({
+        toWarehouseId: toId,
+        productId,
+        quantity,
+        shelf,
+        expirationDate: expirationDate || undefined,
+        zoneId: zoneId === '' ? null : zoneId
+      }),
     }),
 };
 

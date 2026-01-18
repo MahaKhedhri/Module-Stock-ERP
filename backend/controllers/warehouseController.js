@@ -59,9 +59,9 @@ const deleteWarehouse = async (req, res, next) => {
 
 const assignProduct = async (req, res, next) => {
   try {
-    const { productId, quantity } = req.body;
+    const { productId, quantity, shelf, expirationDate, zoneId } = req.body;
     const qty = Math.max(0, parseInt(quantity) || 0); // Ensure non-negative
-    const assignment = await Warehouse.assignProduct(req.params.id, productId, qty);
+    const assignment = await Warehouse.assignProduct(req.params.id, productId, qty, shelf, expirationDate, zoneId);
     res.json(assignment);
   } catch (error) {
     if (error.message.includes('déjà assigné')) {
@@ -100,9 +100,9 @@ const updateProductQuantity = async (req, res, next) => {
 
 const moveProduct = async (req, res, next) => {
   try {
-    const { toWarehouseId, productId, quantity } = req.body;
+    const { toWarehouseId, productId, quantity, shelf, expirationDate, zoneId } = req.body;
     const qty = Math.max(0, parseInt(quantity) || 0); // Ensure non-negative
-    await Warehouse.moveProduct(req.params.id, toWarehouseId, productId, qty);
+    await Warehouse.moveProduct(req.params.id, toWarehouseId, productId, qty, shelf, expirationDate, zoneId);
     res.json({ success: true, message: 'Product moved successfully' });
   } catch (error) {
     if (error.message.includes('Insufficient') || error.message.includes('déjà') || error.message.includes('trouvé')) {
@@ -117,6 +117,8 @@ const formatWarehouse = (warehouse) => ({
   name: warehouse.name,
   address: warehouse.address,
   description: warehouse.description,
+  shelves: warehouse.shelves,
+  zones: warehouse.zones,
   productCount: warehouse.product_count ? parseInt(warehouse.product_count) : 0,
   products: warehouse.products ? warehouse.products.map(p => ({
     id: p.id.toString(),
@@ -125,7 +127,9 @@ const formatWarehouse = (warehouse) => ({
     sku: p.sku,
     quantity: p.product_quantity != null ? parseInt(p.product_quantity) : 0,
     unit: p.unit,
-    image: p.image
+    image: p.image,
+    shelf: p.shelf,
+    expirationDate: p.expiration_date
   })) : []
 });
 
