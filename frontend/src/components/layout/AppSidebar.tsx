@@ -24,7 +24,6 @@ const menuItems = [
   { title: 'Mouvements', url: '/stock-movements', icon: TrendingUp },
   { title: 'Alertes', url: '/alerts', icon: AlertTriangle },
   { title: 'Archives', url: '/archive', icon: Archive },
-  { title: 'Rapports', url: '/reports', icon: BarChart3 },
 ];
 
 export function AppSidebar() {

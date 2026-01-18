@@ -157,6 +157,8 @@ export const alertsApi = {
 export const reportsApi = {
   getDashboardStats: () => request<any>('/reports/dashboard-stats'),
   getStockValuation: () => request<any[]>('/reports/stock-valuation'),
+  getCategoryDistribution: () => request<any[]>('/reports/category-distribution'),
+  getTopMovers: () => request<any[]>('/reports/top-movers'),
 };
 
 export { ApiError };

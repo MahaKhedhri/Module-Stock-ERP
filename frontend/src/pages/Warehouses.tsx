@@ -38,7 +38,7 @@ export default function Warehouses() {
         assignedProductIds.add(product.productId);
       });
     });
-    
+
     // Return products that are not in any warehouse
     return products.filter(p => !assignedProductIds.has(p.id));
   };
@@ -131,16 +131,16 @@ export default function Warehouses() {
         }
       } else {
         // Check if product is already in another warehouse
-        const productInWarehouse = warehouses.find(w => 
+        const productInWarehouse = warehouses.find(w =>
           w.products?.some(p => p.productId === draggedProduct.productId)
         );
-        
+
         if (productInWarehouse) {
           toast.error(`Ce produit est déjà dans l'entrepôt "${productInWarehouse.name}"`);
           setDraggedProduct(null);
           return;
         }
-        
+
         // Assigning new product to warehouse - use current product quantity
         const product = products.find(p => p.id === draggedProduct.productId);
         const productQuantity = product?.quantity || 0;
@@ -226,9 +226,8 @@ export default function Warehouses() {
           {warehouses.map((warehouse) => (
             <Card
               key={warehouse.id}
-              className={`p-4 border-2 transition-colors ${
-                draggedProduct ? 'border-primary' : ''
-              }`}
+              className={`p-4 border-2 transition-colors ${draggedProduct ? 'border-primary' : ''
+                }`}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, warehouse.id)}
             >
@@ -247,15 +246,7 @@ export default function Warehouses() {
                   )}
                 </div>
                 <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setSelectedWarehouse(selectedWarehouse === warehouse.id ? null : warehouse.id);
-                    }}
-                  >
-                    {selectedWarehouse === warehouse.id ? 'Voir tous' : 'Voir produits'}
-                  </Button>
+
                   <Button
                     size="sm"
                     variant="outline"

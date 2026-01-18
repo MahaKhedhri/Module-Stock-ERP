@@ -16,7 +16,7 @@ import Warehouses from "./pages/Warehouses";
 import StockMovements from "./pages/StockMovements";
 import Alerts from "./pages/Alerts";
 import Archive from "./pages/Archive";
-import Reports from "./pages/Reports";
+
 
 const queryClient = new QueryClient();
 
@@ -40,7 +40,7 @@ const App = () => (
                 <Route path="/stock-movements" element={<StockMovements />} />
                 <Route path="/alerts" element={<Alerts />} />
                 <Route path="/archive" element={<Archive />} />
-                <Route path="/reports" element={<Reports />} />
+
               </Routes>
             </AppLayout>
           </BrowserRouter>

@@ -6,9 +6,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "migrate": "node scripts/migrate.js",
+    "migrate": "node scripts/migrate.js && node scripts/migrate_v2.js && node scripts/migrate_v3.js && node scripts/migrate_v4.js && node scripts/migrate_v5.js && node scripts/migrate_v6.js && node scripts/migrate_v7.js",
     "seed": "node scripts/seed.js",
-    "setup": "node scripts/migrate.js && node scripts/seed.js"
+    "setup": "npm run migrate && npm run seed"
   },
   "keywords": [
     "express",
